@@ -6,6 +6,7 @@ import numpy as np
 import socket
 import struct
 import math
+import argparse
 
 
 class FrameSegment(object):
@@ -13,8 +14,8 @@ class FrameSegment(object):
     Object to break down image frame segment
     if the size of image exceed maximum datagram size 
     """
-    MAX_DGRAM = 2**16
-    MAX_IMAGE_DGRAM = MAX_DGRAM - 64 # extract 64 bytes in case UDP frame overflown
+    MAX_DGRAM = 2 ** 16
+    MAX_IMAGE_DGRAM = MAX_DGRAM - 64  # extract 64 bytes in case UDP frame overflown
 
     def __init__(self, sock, port, addr="127.0.0.1"):
         self.s = sock
@@ -27,16 +28,16 @@ class FrameSegment(object):
         into data segments 
         """
         compress_img = cv2.imencode('.jpg', img)[1]
-        dat = compress_img.tostring()
+        dat = compress_img.tobytes()
         size = len(dat)
-        count = math.ceil(size/(self.MAX_IMAGE_DGRAM))
+        count = math.ceil(size / (self.MAX_IMAGE_DGRAM))
         array_pos_start = 0
         while count:
             array_pos_end = min(size, array_pos_start + self.MAX_IMAGE_DGRAM)
             self.s.sendto(struct.pack("B", count) +
-                dat[array_pos_start:array_pos_end], 
-                (self.addr, self.port)
-                )
+                          dat[array_pos_start:array_pos_end],
+                          (self.addr, self.port)
+                          )
             array_pos_start = array_pos_end
             count -= 1
 
@@ -44,19 +45,28 @@ class FrameSegment(object):
 def main():
     """ Top level main function """
     # Set up UDP socket
+    parser = argparse.ArgumentParser(description='UDP Multicast sender.')
+    parser.add_argument("ip_address", help="Multicast IP")
+    parser.add_argument("port", type=int, help="Multicast Port")
+    parser.add_argument("filename", help="Filename")
+    args = parser.parse_args()
+    ip_address = args.ip_address
+    port = args.port
+    filename = args.filename
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    port = 12345
-    multicast_group = ('224.3.29.71', 10000)
+    multicast_group = (ip_address, port)
 
     fs = FrameSegment(s, multicast_group[1], multicast_group[0])
 
-    cap = cv2.VideoCapture("Video2.mp4")
-    while (cap.isOpened()):
+    cap = cv2.VideoCapture(filename)
+    while cap.isOpened():
         _, frame = cap.read()
         fs.udp_frame(frame)
     cap.release()
     cv2.destroyAllWindows()
     s.close()
+
 
 if __name__ == "__main__":
     main()
