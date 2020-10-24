@@ -29,7 +29,7 @@ def set_ip():
     multicast_group = input("Ingrese la dirección de multicast: ")
     port = int(input("Ingrese el puerto del servidor multicast: "))
     print("")
-    s.bind(('', port))
+    s.bind(('0.0.0.0', port))
 
     group = socket.inet_aton(multicast_group)
     mreq = struct.pack('4sL', group, socket.INADDR_ANY)

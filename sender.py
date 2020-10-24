@@ -55,6 +55,8 @@ def main():
     filename = args.filename
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ttl = struct.pack('b', 1)
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
     multicast_group = (ip_address, port)
 
     fs = FrameSegment(s, multicast_group[1], multicast_group[0])
